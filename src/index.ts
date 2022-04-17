@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
 
 export class Database {
-  private data: object;
+  public data: object;
   private raw_data: string;
 
   constructor(
@@ -26,41 +26,41 @@ export class Database {
     }
   }
 
-  get(raw_keys: string) {
-    const keys = raw_keys.split('.');
+  get(raw_keys: string, escape: boolean = true) {
+    const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
     let key: string = '';
     for (let i = 0; i < keys_length; i++) {
-      key += '.' + keys[i];
+      key += `["${keys[i]}"]`;
       const value = eval(`this.data${key}`);
 
       if (!value) {
         return;
       }
     }
-    return eval(`this.data.${raw_keys}`);
+    return eval(`this.data${key}`);
   }
 
-  set(raw_keys: string, value: any) {
-    const keys = raw_keys.split('.');
+  set(raw_keys: string, value: any, escape: boolean = true) {
+    const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
     let key: string = '';
     for (let i = 0; i < keys_length; i++) {
-      key += '.' + keys[i];
+      key += `["${keys[i]}"]`;
       eval(`this.data${key} ||= {}`);
     }
-    eval(`this.data.${raw_keys} = value`);
+    eval(`this.data${key} = value`);
   }
 
-  has(raw_keys: string) {
-    const keys = raw_keys.split('.');
+  has(raw_keys: string, escape: boolean = true) {
+    const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
     let key: string = '';
     for (let i = 0; i < keys_length; i++) {
-      key += '.' + keys[i];
+      key += `["${keys[i]}"]`;
       const value = eval(`this.data${key}`);
 
       if (!value) {
@@ -70,8 +70,15 @@ export class Database {
     return true;
   }
 
-  delete(raw_keys: string) {
-    eval(`delete this.data.${raw_keys}`);
+  delete(raw_keys: string, escape: boolean = true) {
+    const keys = escape ? raw_keys.split('.') : [raw_keys];
+    const keys_length = keys.length;
+
+    let key: string = '';
+    for (let i = 0; i < keys_length; i++) {
+      key += `["${keys[i]}"]`;
+    }
+    eval(`delete this.data${key}`);
   }
 
   async write(): Promise<void> {

@@ -1,4 +1,3 @@
-import { deepClone } from 'kokkoro';
 import { readFileSync, writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
 
@@ -15,8 +14,8 @@ export class Database {
     try {
       const raw_data = readFileSync(this.path, 'utf8');
 
-      this.raw_data = raw_data;
-      this.data = JSON.parse(raw_data);
+      this.raw_data = raw_data || this.raw_data;
+      this.data = JSON.parse(this.raw_data);
     } catch (error) {
       const { message } = error as Error;
 
@@ -27,31 +26,52 @@ export class Database {
     }
   }
 
-  get() {
+  get(raw_keys: string) {
+    const keys = raw_keys.split('.');
+    const keys_length = keys.length;
 
+    let key: string = '';
+    for (let i = 0; i < keys_length; i++) {
+      key += '.' + keys[i];
+      const value = eval(`this.data${key}`);
+
+      if (!value) {
+        return;
+      }
+    }
+    return eval(`this.data.${raw_keys}`);
   }
 
   set(raw_keys: string, value: any) {
     const keys = raw_keys.split('.');
     const keys_length = keys.length;
 
-    if (keys_length > 1) {
-
+    let key: string = '';
+    for (let i = 0; i < keys_length; i++) {
+      key += '.' + keys[i];
+      eval(`this.data${key} ||= {}`);
     }
-
-    // for (let i = 0; i !== keys_length - 1; i++) {
-    //   const key = keys[i];
-
-    //   this.data[key]
-    // }
+    eval(`this.data.${raw_keys} = value`);
   }
 
-  has() {
+  has(raw_keys: string) {
+    const keys = raw_keys.split('.');
+    const keys_length = keys.length;
 
+    let key: string = '';
+    for (let i = 0; i < keys_length; i++) {
+      key += '.' + keys[i];
+      const value = eval(`this.data${key}`);
+
+      if (!value) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  delete() {
-
+  delete(raw_keys: string) {
+    eval(`delete this.data.${raw_keys}`);
   }
 
   async write(): Promise<void> {

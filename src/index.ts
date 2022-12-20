@@ -1,99 +1,139 @@
-import { readFileSync, writeFileSync } from 'fs';
-import { writeFile } from 'fs/promises';
+import { watch } from 'chokidar';
+import { isAbsolute, resolve } from 'path';
+import { writeFileSync, readFileSync } from 'fs';
+import { writeFile, readFile } from 'fs/promises';
 
 export class Database {
-  public data: object;
-  private raw_data: string;
+  public data: {
+    [k: string]: any;
+  };
 
   constructor(
+    /** 文件路径 */
     private path: string,
+    /** 监听文件并热更 */
+    private watch: boolean = false,
   ) {
+    this.path = isAbsolute(path) ? path : resolve(path);
     this.data = {};
-    this.raw_data = '{}';
 
     try {
-      const raw_data = readFileSync(this.path, 'utf8');
-
-      this.raw_data = raw_data || this.raw_data;
-      this.data = JSON.parse(this.raw_data);
+      const data = readFileSync(this.path, 'utf8');
+      this.data = JSON.parse(data);
     } catch (error) {
-      const { message } = error as Error;
-
-      if (!message.includes('ENOENT: no such file or directory')) {
-        throw error;
-      }
-      writeFileSync(this.path, this.raw_data);
+      writeFileSync(this.path, '{}');
     }
+    this.watch && this.watchLocalFile();
   }
 
-  get(raw_keys: string, escape: boolean = true) {
+  public get(raw_keys: string, escape: boolean = true) {
+    let data = this.data;
+
     const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
-    let key: string = '';
     for (let i = 0; i < keys_length; i++) {
-      key += `["${keys[i]}"]`;
-      const value = eval(`this.data${key}`);
+      const key = keys[i];
 
-      if (!value) {
+      if (!data[key]) {
         return;
       }
+      data = data[key];
     }
-    return eval(`this.data${key}`);
+    return data;
   }
 
-  set(raw_keys: string, value: any, escape: boolean = true) {
+  public set(raw_keys: string, value: any, escape: boolean = true): this {
+    let data = this.data;
+
     const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
-    let key: string = '';
     for (let i = 0; i < keys_length; i++) {
-      key += `["${keys[i]}"]`;
-      eval(`this.data${key} ||= {}`);
+      const key = keys[i];
+
+      if (i === keys_length - 1) {
+        data[key] = value;
+        break;
+      }
+      data[key] ??= {};
+
+      if (data[key].constructor !== Object) {
+        data[key] = {};
+      }
+      data = data[key];
     }
-    eval(`this.data${key} = value`);
+    return this;
   }
 
-  has(raw_keys: string, escape: boolean = true) {
+  public has(raw_keys: string, escape: boolean = true): boolean {
+    let data = this.data;
+
     const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
-    let key: string = '';
     for (let i = 0; i < keys_length; i++) {
-      key += `["${keys[i]}"]`;
-      const value = eval(`this.data${key}`);
+      const key = keys[i];
 
-      if (!value) {
+      if (!data[key]) {
         return false;
       }
+      data = data[key];
     }
     return true;
   }
 
-  delete(raw_keys: string, escape: boolean = true) {
+  public delete(raw_keys: string, escape: boolean = true): this {
+    let data = this.data;
+
     const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
-    let key: string = '';
     for (let i = 0; i < keys_length; i++) {
-      key += `["${keys[i]}"]`;
+      const key = keys[i];
+
+      if (i === keys_length - 1) {
+        delete data[key];
+        break;
+      }
+      if (!data[key]) {
+        break;
+      }
+      data = data[key];
     }
-    eval(`delete this.data${key}`);
+    return this;
   }
 
-  async write(): Promise<void> {
-    try {
-      const raw_data = JSON.stringify(this.data, null, 2);
+  public async write(): Promise<void> {
+    const localData = JSON.stringify(await this.getLocalData(), null, 2);
+    const currentData = JSON.stringify(this.data, null, 2);
 
-      if (raw_data !== this.raw_data) {
-        await writeFile(this.path, raw_data);
-        this.raw_data = raw_data;
-      }
-    } catch (error) {
-      const data = JSON.parse(this.raw_data);
-
-      this.data = data;
-      throw error;
+    if (localData === currentData) {
+      return;
     }
+    return writeFile(this.path, currentData);
+  }
+
+  /**
+   * 读取本地文件
+   * 
+   * @returns 本地数据字符串
+   */
+  private getLocalData(): Promise<string> {
+    return readFile(this.path, 'utf8');
+  }
+
+  /**
+   * 监听文件热更
+   * 
+   * @returns 
+   */
+  private watchLocalFile() {
+    return watch(this.path).on('change', async () => {
+      try {
+        const data = await this.getLocalData();
+        this.data = JSON.parse(data);
+      } catch (error) { }
+    });
   }
 }

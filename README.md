@@ -1,2 +1,3 @@
 # jsondb
-Local JSON database for kokkoro
+
+Local JSON database

@@ -1,6 +1,6 @@
 {
   "name": "@kokkoro/jsondb",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Local JSON database",
   "main": "lib/index.js",
   "scripts": {
@@ -19,11 +19,11 @@
     "url": "https://github.com/kokkorojs/jsondb/issues"
   },
   "homepage": "https://github.com/kokkorojs/jsondb#readme",
-  "dependencies": {
-    "chokidar": "^3.5.3"
-  },
   "devDependencies": {
-    "@types/node": "^18.11.17"
+    "@types/node": "^18.11.18"
+  },
+  "dependencies": {
+    "@kokkoro/utils": "^0.2.0"
   },
   "files": [
     "lib"

@@ -1,34 +1,46 @@
-import { watch } from 'chokidar';
-import { isAbsolute, resolve } from 'path';
-import { writeFileSync, readFileSync } from 'fs';
-import { writeFile, readFile } from 'fs/promises';
+import { isAbsolute, join, resolve } from 'path';
+import { writeFileSync, opendirSync, mkdirSync } from 'fs';
+import { writeFile } from 'fs/promises';
+import { decache, debounce } from '@kokkoro/utils';
 
 export class Database {
-  public data: {
-    [k: string]: any;
-  };
+  /** 文件夹路径 */
+  public path: string;
+  /** JSON 文件路径 */
+  public filename: string;
+  // TODO ／人◕ ‿‿ ◕人＼ 文件备份
+  // public backup: string;
+  private data: Record<string, any>;
 
-  constructor(
-    /** 文件路径 */
-    private path: string,
-    /** 监听文件并热更 */
-    private watch: boolean = false,
-  ) {
+  constructor(path: string) {
     this.path = isAbsolute(path) ? path : resolve(path);
-    this.data = {};
+    this.filename = join(this.path, 'index.json');
+    this.data = {
+      updateTime: new Date(),
+    };
 
     try {
-      const data = readFileSync(this.path, 'utf8');
-      this.data = JSON.parse(data);
+      opendirSync(path);
     } catch (error) {
-      writeFileSync(this.path, '{}');
+      mkdirSync(path);
     }
-    this.watch && this.watchLocalFile();
+
+    try {
+      this.data = require(this.filename);
+
+      if (!this.data.updateTime) {
+        this.data.updateTime = new Date();
+        throw new Error();
+      }
+    } catch (error) {
+      writeFileSync(this.filename, JSON.stringify(this.data, null, 2));
+    }
   }
 
-  public get(raw_keys: string, escape: boolean = true) {
-    let data = this.data;
+  public async get(raw_keys: string, escape: boolean = true): Promise<Record<string, any> | undefined> {
+    await this.refreshData();
 
+    let data = this.data;
     const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
@@ -43,9 +55,10 @@ export class Database {
     return data;
   }
 
-  public set(raw_keys: string, value: any, escape: boolean = true): this {
-    let data = this.data;
+  public async put(raw_keys: string, value: any, escape: boolean = true): Promise<void> {
+    await this.refreshData();
 
+    let data = this.data;
     const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
@@ -63,12 +76,13 @@ export class Database {
       }
       data = data[key];
     }
-    return this;
+    await this.writeLocalFile();
   }
 
-  public has(raw_keys: string, escape: boolean = true): boolean {
-    let data = this.data;
+  public async has(raw_keys: string, escape: boolean = true): Promise<boolean> {
+    await this.refreshData();
 
+    let data = this.data;
     const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
@@ -83,9 +97,10 @@ export class Database {
     return true;
   }
 
-  public delete(raw_keys: string, escape: boolean = true): this {
-    let data = this.data;
+  public async del(raw_keys: string, escape: boolean = true): Promise<void> {
+    await this.refreshData();
 
+    let data = this.data;
     const keys = escape ? raw_keys.split('.') : [raw_keys];
     const keys_length = keys.length;
 
@@ -101,39 +116,22 @@ export class Database {
       }
       data = data[key];
     }
-    return this;
+    await this.writeLocalFile();
   }
 
-  public async write(): Promise<void> {
-    const localData = JSON.stringify(await this.getLocalData(), null, 2);
-    const currentData = JSON.stringify(this.data, null, 2);
-
-    if (localData === currentData) {
-      return;
-    }
-    return writeFile(this.path, currentData);
+  private async writeLocalFile(): Promise<void> {
+    this.data.updateTime = new Date();
+    return writeFile(this.filename, JSON.stringify(this.data, null, 2));
   }
 
   /**
-   * 读取本地文件
-   * 
-   * @returns 本地数据字符串
+   * 刷新数据
    */
-  private getLocalData(): Promise<string> {
-    return readFile(this.path, 'utf8');
-  }
-
-  /**
-   * 监听文件热更
-   * 
-   * @returns 
-   */
-  private watchLocalFile() {
-    return watch(this.path).on('change', async () => {
-      try {
-        const data = await this.getLocalData();
-        this.data = JSON.parse(data);
-      } catch (error) { }
+  private async refreshData(): Promise<void> {
+    await new Promise<void>((resolve) => {
+      decache(this.filename);
+      this.data = require(this.filename);
+      resolve();
     });
   }
 }

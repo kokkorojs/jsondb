@@ -1,7 +1,7 @@
 import { isAbsolute, join, resolve } from 'path';
 import { writeFileSync, opendirSync, mkdirSync } from 'fs';
 import { writeFile } from 'fs/promises';
-import { decache, debounce } from '@kokkoro/utils';
+import { decache } from '@kokkoro/utils';
 
 export class Database {
   /** 文件夹路径 */

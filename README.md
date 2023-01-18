@@ -3,6 +3,8 @@
 Local JSON database (◕ω＜)☆
 
 ```typescript
+import { Database } from '@kokkoro/jsondb';
+
 const db = new Database('example');
 
 (async () => {

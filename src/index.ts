@@ -2,20 +2,27 @@ import { isAbsolute, join, resolve } from 'path';
 import { decache, deepClone } from '@kokkoro/utils';
 import { writeFileSync, opendirSync, mkdirSync } from 'fs';
 
+// TODO ／人◕ ‿‿ ◕人＼ watch file
+const NEED_REFRESH = Symbol('NEED_REFRESH');
+
 function saveFile(filename: string, data: Record<string | symbol, any>) {
   return writeFileSync(filename, JSON.stringify(data, null, 2));
 }
 
+export interface Database extends Record<string | symbol, any> {
+  // [NEED_REFRESH]: boolean;
+}
+
 export class Database {
   constructor(path: string) {
+    if (!path.trim()) {
+      throw new Error('invalid path');
+    }
     path = isAbsolute(path) ? path : resolve(path);
-
-    let data = {};
-    // TODO ／人◕ ‿‿ ◕人＼ watch file
-    let need_refresh = false;
 
     const filename = join(path, 'index.json');
     const refreshData = (target: Record<string | symbol, any>) => {
+      // TODO ／人◕ ‿‿ ◕人＼ NEED_REFRESH
       const target_keys = Object.keys(target);
       const target_keys_length = target_keys.length;
 
@@ -75,10 +82,12 @@ export class Database {
     } catch (error) {
       mkdirSync(path);
     }
+    let data;
 
     try {
       data = require(filename);
     } catch (error) {
+      data = {};
       writeFileSync(filename, '{\n\n}');
     }
     return new Proxy(data, handler);

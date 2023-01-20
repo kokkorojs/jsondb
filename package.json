@@ -1,6 +1,6 @@
 {
   "name": "@kokkoro/jsondb",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Local JSON database (◕ω＜)☆",
   "main": "lib/index.js",
   "scripts": {

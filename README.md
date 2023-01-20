@@ -2,19 +2,16 @@
 
 Local JSON database (◕ω＜)☆
 
-```typescript
-import { Database } from '@kokkoro/jsondb';
+```javascript
+const { Database } = require('@kokkoro/jsondb');
 
-const db = new Database('example');
+const db = new Database('kokkoro'); // created "kokkoro/index.json"
 
-(async () => {
-  await db.put('message', 'hello world');
-  console.log(await db.has('message')); // true
+console.log(db); // JSON file => {}
+db.message = 'hello world'; // JSON file => { "message": "hello world" }
 
-  const message = await db.get('message');
-  console.log(message); // "hello world"
-
-  await db.put('message.value', 'hello world'); // { "message": { "value": "hello world" } }
-  await db.put('message.value', 'hello world', false); // { "message.value": "hello world" } }
-})();
+setInterval(() => {
+  // modify local JSON file to support hot update
+  console.log(db.message);
+}, 1000);
 ```

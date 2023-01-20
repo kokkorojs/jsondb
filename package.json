@@ -1,7 +1,7 @@
 {
   "name": "@kokkoro/jsondb",
-  "version": "1.1.1",
-  "description": "Local JSON database",
+  "version": "1.2.0",
+  "description": "Local JSON database (◕ω＜)☆",
   "main": "lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,7 +11,13 @@
     "url": "git+https://github.com/kokkorojs/jsondb.git"
   },
   "keywords": [
-    "kokkoro"
+    "kokkoro",
+    "json",
+    "database",
+    "db",
+    "local",
+    "store",
+    "storage"
   ],
   "author": "yuki <mail@yuki.sh>",
   "license": "MIT",
@@ -23,7 +29,7 @@
     "@types/node": "^18.11.18"
   },
   "dependencies": {
-    "@kokkoro/utils": "^0.2.0"
+    "@kokkoro/utils": "^0.2.1"
   },
   "files": [
     "lib"

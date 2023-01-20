@@ -1,137 +1,84 @@
 import { isAbsolute, join, resolve } from 'path';
+import { decache, deepClone } from '@kokkoro/utils';
 import { writeFileSync, opendirSync, mkdirSync } from 'fs';
-import { writeFile } from 'fs/promises';
-import { decache } from '@kokkoro/utils';
+
+function saveFile(filename: string, data: Record<string | symbol, any>) {
+  return writeFileSync(filename, JSON.stringify(data, null, 2));
+}
 
 export class Database {
-  /** 文件夹路径 */
-  public path: string;
-  /** JSON 文件路径 */
-  public filename: string;
-  // TODO ／人◕ ‿‿ ◕人＼ 文件备份
-  // public backup: string;
-  private data: Record<string, any>;
-
   constructor(path: string) {
-    this.path = isAbsolute(path) ? path : resolve(path);
-    this.filename = join(this.path, 'index.json');
-    this.data = {
-      updateTime: new Date(),
-    };
+    path = isAbsolute(path) ? path : resolve(path);
 
+    const filename = join(path, 'index.json');
+    const refreshData = (target: Record<string | symbol, any>) => {
+      const target_keys = Object.keys(target);
+      const target_keys_length = target_keys.length;
+
+      for (let i = 0; i < target_keys_length; i++) {
+        const key = target_keys[i];
+        delete target[key];
+      }
+      decache(filename);
+
+      const data = require(filename);
+      const data_keys = Object.keys(data);
+      const data_keys_length = data_keys.length;
+
+      for (let i = 0; i < data_keys_length; i++) {
+        const key = data_keys[i];
+        target[key] = data[key];
+      }
+    };
+    const handler: ProxyHandler<{}> = {
+      get(target: Record<string | symbol, any>, property, receiver: Database) {
+        refreshData(target);
+        return target[property];
+      },
+      set(target: Record<string | symbol, any>, property, value, receiver: Database) {
+        try {
+          refreshData(target);
+
+          if (deepClone(target[property]) === deepClone(value)) {
+            throw undefined;
+          }
+          const data = deepClone(target);
+          data[property] = value;
+
+          saveFile(filename, data);
+          target[property] = value;
+        } catch (error) { }
+        return true;
+      },
+      deleteProperty(target: Record<string | symbol, any>, property) {
+        try {
+          refreshData(target);
+
+          if (target[property] === undefined) {
+            throw undefined;
+          }
+          const data = deepClone(target);
+          delete data[property];
+
+          saveFile(filename, data);
+          delete target[property];
+        } catch (error) { }
+        return true;
+      },
+    };
     try {
       opendirSync(path);
     } catch (error) {
       mkdirSync(path);
     }
+    let data;
 
     try {
-      this.data = require(this.filename);
-
-      if (!this.data.updateTime) {
-        this.data.updateTime = new Date();
-        throw new Error();
-      }
+      data = require(filename);
     } catch (error) {
-      writeFileSync(this.filename, JSON.stringify(this.data, null, 2));
+      data = {};
+      writeFileSync(filename, '{\n\n}');
     }
-  }
-
-  public async get(raw_keys: string, escape: boolean = true): Promise<Record<string, any> | undefined> {
-    await this.refreshData();
-
-    let data = this.data;
-    const keys = escape ? raw_keys.split('.') : [raw_keys];
-    const keys_length = keys.length;
-
-    for (let i = 0; i < keys_length; i++) {
-      const key = keys[i];
-
-      if (!data[key]) {
-        return;
-      }
-      data = data[key];
-    }
-    return data;
-  }
-
-  public async put(raw_keys: string, value: any, escape: boolean = true): Promise<void> {
-    await this.refreshData();
-
-    let data = this.data;
-    const keys = escape ? raw_keys.split('.') : [raw_keys];
-    const keys_length = keys.length;
-
-    for (let i = 0; i < keys_length; i++) {
-      const key = keys[i];
-
-      if (i === keys_length - 1) {
-        data[key] = value;
-        break;
-      }
-      data[key] ??= {};
-
-      if (data[key].constructor !== Object) {
-        data[key] = {};
-      }
-      data = data[key];
-    }
-    await this.writeLocalFile();
-  }
-
-  public async has(raw_keys: string, escape: boolean = true): Promise<boolean> {
-    await this.refreshData();
-
-    let data = this.data;
-    const keys = escape ? raw_keys.split('.') : [raw_keys];
-    const keys_length = keys.length;
-
-    for (let i = 0; i < keys_length; i++) {
-      const key = keys[i];
-
-      if (!data[key]) {
-        return false;
-      }
-      data = data[key];
-    }
-    return true;
-  }
-
-  public async del(raw_keys: string, escape: boolean = true): Promise<void> {
-    await this.refreshData();
-
-    let data = this.data;
-    const keys = escape ? raw_keys.split('.') : [raw_keys];
-    const keys_length = keys.length;
-
-    for (let i = 0; i < keys_length; i++) {
-      const key = keys[i];
-
-      if (i === keys_length - 1) {
-        delete data[key];
-        break;
-      }
-      if (!data[key]) {
-        break;
-      }
-      data = data[key];
-    }
-    await this.writeLocalFile();
-  }
-
-  private async writeLocalFile(): Promise<void> {
-    this.data.updateTime = new Date();
-    return writeFile(this.filename, JSON.stringify(this.data, null, 2));
-  }
-
-  /**
-   * 刷新数据
-   */
-  private async refreshData(): Promise<void> {
-    await new Promise<void>((resolve) => {
-      decache(this.filename);
-      this.data = require(this.filename);
-      resolve();
-    });
+    return new Proxy(data, handler);
   }
 }

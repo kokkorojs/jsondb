@@ -10,6 +10,10 @@ export class Database {
   constructor(path: string) {
     path = isAbsolute(path) ? path : resolve(path);
 
+    let data = {};
+    // TODO ／人◕ ‿‿ ◕人＼ watch file
+    let need_refresh = false;
+
     const filename = join(path, 'index.json');
     const refreshData = (target: Record<string | symbol, any>) => {
       const target_keys = Object.keys(target);
@@ -71,12 +75,10 @@ export class Database {
     } catch (error) {
       mkdirSync(path);
     }
-    let data;
 
     try {
       data = require(filename);
     } catch (error) {
-      data = {};
       writeFileSync(filename, '{\n\n}');
     }
     return new Proxy(data, handler);

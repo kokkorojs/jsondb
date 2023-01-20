@@ -1,19 +1,19 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@kokkoro/utils': ^0.2.1
+  '@kokkoro/utils': ^0.5.0
   '@types/node': ^18.11.18
 
 dependencies:
-  '@kokkoro/utils': 0.2.1
+  '@kokkoro/utils': 0.5.0
 
 devDependencies:
   '@types/node': 18.11.18
 
 packages:
 
-  /@kokkoro/utils/0.2.1:
-    resolution: {integrity: sha512-6fQHa2sd7glAvPIXV/pJx2ODvTPo6MEe6lambXDZvu0ou9pOhgT23PjHGS1qC5ded7xvV5ZYRCPQseY6nn6hTA==}
+  /@kokkoro/utils/0.5.0:
+    resolution: {integrity: sha512-5N/stT3uIfy9swiDuZC+yJcmWgHCKg7nXVBX0Ney2w94EzZAsZkv3qvna7Lsyh6ctApsVNxhR4E7V48y9WU0bQ==}
     dev: false
 
   /@types/node/18.11.18:

@@ -11,13 +11,7 @@
     "url": "git+https://github.com/kokkorojs/jsondb.git"
   },
   "keywords": [
-    "kokkoro",
-    "json",
-    "database",
-    "db",
-    "local",
-    "store",
-    "storage"
+    "kokkoro"
   ],
   "author": "yuki <mail@yuki.sh>",
   "license": "MIT",
@@ -26,10 +20,8 @@
   },
   "homepage": "https://github.com/kokkorojs/jsondb#readme",
   "devDependencies": {
+    "@kokkoro/utils": "^0.5.0",
     "@types/node": "^18.11.18"
-  },
-  "dependencies": {
-    "@kokkoro/utils": "^0.2.1"
   },
   "files": [
     "lib"

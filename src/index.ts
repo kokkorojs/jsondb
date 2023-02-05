@@ -78,7 +78,8 @@ export class Database {
       },
     };
     try {
-      opendirSync(path);
+      const dirs = opendirSync(path);
+      dirs.close();
     } catch (error) {
       mkdirSync(path, { recursive: true, });
     }

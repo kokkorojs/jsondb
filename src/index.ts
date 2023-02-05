@@ -80,7 +80,7 @@ export class Database {
     try {
       opendirSync(path);
     } catch (error) {
-      mkdirSync(path);
+      mkdirSync(path, { recursive: true, });
     }
     let data;
 

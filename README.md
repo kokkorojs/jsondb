@@ -13,5 +13,5 @@ db.message = 'hello world'; // JSON file => { "message": "hello world" }
 setInterval(() => {
   // modify local JSON file to support hot update
   console.log(db.message);
-}, 1000);
+}, 2000);
 ```
